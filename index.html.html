@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitLog</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d0d0f;--surface:#141417;--panel:#1c1c21;--border:#2a2a32;
+    --accent:#e8ff47;--accent2:#ff4f4f;--accent3:#47c4ff;
+    --text:#f0f0f0;--muted:#6b6b7a;
+    --mono:'Space Mono',monospace;--sans:'Space Grotesk',sans-serif;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+
+  /* HEADER */
+  header{border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;
+    justify-content:space-between;height:54px;position:sticky;top:0;background:var(--bg);z-index:100}
+  .logo{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.06em}
+  .logo span{color:var(--accent)}
+  .date-nav{display:flex;align-items:center;gap:8px}
+  .date-nav button{background:var(--panel);border:1px solid var(--border);color:var(--text);
+    width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:15px;display:flex;
+    align-items:center;justify-content:center;transition:border-color .15s}
+  .date-nav button:hover{border-color:var(--accent);color:var(--accent)}
+  #current-date{background:none;border:1px solid var(--border);color:var(--text);
+    font-family:var(--mono);font-size:12px;cursor:pointer;padding:4px 8px;border-radius:4px;outline:none}
+  #current-date:focus{border-color:var(--accent)}
+  .btn-save{background:var(--accent);color:#000;border:none;padding:7px 18px;border-radius:4px;
+    font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .btn-save:hover{opacity:.85}
+
+  /* LAYOUT */
+  .app{display:grid;grid-template-columns:200px 1fr;min-height:calc(100vh - 54px)}
+
+  /* SIDEBAR */
+  aside{border-right:1px solid var(--border);padding:18px 0;position:sticky;top:54px;
+    height:calc(100vh - 54px);overflow-y:auto}
+  .sb-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);
+    text-transform:uppercase;margin-bottom:8px;padding:0 16px 0 22px}
+  .sb-nav{padding:0 10px;margin-bottom:24px}
+  .sb-nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;
+    text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;
+    transition:background .12s,color .12s;border:1px solid transparent}
+  .sb-nav a:hover{background:var(--panel);color:var(--text)}
+  .sb-nav a.active{background:var(--panel);color:var(--accent);border-color:var(--border)}
+  .stat-mini{background:var(--panel);border:1px solid var(--border);border-radius:6px;
+    padding:10px 12px;margin:0 10px 8px}
+  .stat-mini .lbl{font-size:10px;color:var(--muted);font-family:var(--mono)}
+  .stat-mini .val{font-size:18px;font-weight:700;font-family:var(--mono);margin-top:2px}
+  .val.g{color:var(--accent)}.val.b{color:var(--accent3)}.val.r{color:var(--accent2)}
+
+  /* MAIN */
+  main{padding:28px;overflow-y:auto}
+  .section{display:none}.section.active{display:block}
+  .sec-title{font-size:21px;font-weight:700;margin-bottom:4px}
+  .sec-sub{font-size:12px;color:var(--muted);margin-bottom:22px;font-family:var(--mono)}
+
+  /* TABLE */
+  .sheet{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead tr{background:var(--panel);border-bottom:2px solid var(--border)}
+  thead th{padding:10px 14px;text-align:left;font-family:var(--mono);font-size:11px;
+    letter-spacing:.08em;color:var(--muted);font-weight:400;border-right:1px solid var(--border)}
+  thead th:last-child{border-right:none}
+  thead th.ac{color:var(--accent)}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:var(--panel)}
+  td{padding:0;border-right:1px solid var(--border);vertical-align:middle}
+  td:last-child{border-right:none}
+  td.lbl{padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--muted);
+    background:var(--panel);white-space:nowrap;min-width:100px}
+  td input,td textarea{width:100%;background:transparent;border:none;color:var(--text);
+    font-family:var(--mono);font-size:13px;padding:10px 14px;outline:none;resize:none;
+    transition:background .1s;-moz-appearance:textfield}
+  td input::-webkit-inner-spin-button{-webkit-appearance:none}
+  td input:focus,td textarea:focus{background:rgba(232,255,71,.07)}
+  td textarea{height:48px;line-height:1.5}
+  .btn-add{display:flex;align-items:center;gap:8px;padding:10px 16px;background:none;
+    border:1px dashed var(--border);border-top:none;color:var(--muted);font-size:13px;
+    font-family:var(--sans);cursor:pointer;width:100%;border-radius:0 0 8px 8px;
+    transition:color .15s,border-color .15s}
+  .btn-add:hover{color:var(--accent);border-color:var(--accent)}
+
+  /* WORKOUT */
+  .workout-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .ex-row{display:flex;align-items:center;gap:12px;background:var(--panel);
+    border:1px solid var(--border);border-radius:7px;padding:12px 14px}
+  .ex-num{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:20px}
+  .ex-row input{flex:1;background:none;border:none;color:var(--text);font-family:var(--sans);
+    font-size:14px;font-weight:500;outline:none;border-bottom:1px solid transparent;padding-bottom:2px}
+  .ex-row input:focus{border-bottom-color:var(--accent)}
+  .ex-row input::placeholder{color:var(--muted)}
+  .btn-rem{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:0 4px}
+  .btn-rem:hover{color:var(--accent2)}
+  .btn-add-ex{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel);
+    border:1px dashed var(--border);border-radius:7px;color:var(--muted);font-size:13px;
+    cursor:pointer;transition:color .15s,border-color .15s}
+  .btn-add-ex:hover{color:var(--accent);border-color:var(--accent)}
+
+  /* HISTORY */
+  .h-entry{border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+  .h-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
+    background:var(--panel);cursor:pointer;user-select:none}
+  .h-head:hover{background:#1f1f26}
+  .h-date{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:700}
+  .pills{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{font-size:11px;font-family:var(--mono);padding:2px 8px;border-radius:99px;
+    border:1px solid var(--border);color:var(--muted)}
+  .pill.w{border-color:var(--accent3);color:var(--accent3)}
+  .pill.c{border-color:var(--accent);color:var(--accent)}
+  .pill.e{border-color:var(--accent2);color:var(--accent2)}
+  .h-body{display:none;padding:14px 16px;border-top:1px solid var(--border)}
+  .h-body.open{display:block}
+  .h-fields{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:10px}
+  .hf{display:flex;flex-direction:column}
+  .hf .hl{font-size:10px;font-family:var(--mono);color:var(--muted)}
+  .hf .hv{font-size:15px;font-weight:700;font-family:var(--mono);color:var(--text)}
+  .h-remark{font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:6px;font-style:italic}
+  .btn-edit{background:var(--accent);color:#000;border:none;padding:6px 14px;border-radius:4px;
+    font-size:12px;font-weight:700;cursor:pointer;font-family:var(--mono);margin-top:10px}
+
+  /* GRAPH */
+  .graph-wrap{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    padding:20px;margin-bottom:20px}
+  .graph-title{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.1em;
+    text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+  .graph-title select{background:var(--surface);border:1px solid var(--border);color:var(--text);
+    font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:4px;outline:none;cursor:pointer}
+  canvas{width:100%!important}
+
+  /* TOAST */
+  #toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--accent);color:#000;font-weight:700;font-size:13px;padding:10px 22px;
+    border-radius:6px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+    z-index:999;font-family:var(--mono)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FIT<span>LOG</span></div>
+  <div class="date-nav">
+    <button id="btn-prev">‹</button>
+    <input type="date" id="current-date">
+    <button id="btn-next">›</button>
+  </div>
+  <button class="btn-save" onclick="saveDay()">Save Day</button>
+</header>
+
+<div class="app">
+  <aside>
+    <div style="margin-bottom:20px">
+      <div class="sb-label">Log</div>
+      <nav class="sb-nav">
+        <a class="active" data-s="log" onclick="sw('log',this)"><span>📋</span> Daily Log</a>
+        <a data-s="history" onclick="sw('history',this)"><span>📅</span> History</a>
+      </nav>
+    </div>
+    <div class="sb-label">Today</div>
+    <div class="stat-mini"><div class="lbl">WEIGHT</div><div class="val g" id="sw">—</div></div>
+    <div class="stat-mini"><div class="lbl">CALORIES</div><div class="val b" id="sc">—</div></div>
+    <div class="stat-mini"><div class="lbl">EXERCISES</div><div class="val r" id="se">—</div></div>
+    <div class="stat-mini"><div class="lbl">STEPS</div><div class="val" id="ss" style="font-size:18px;font-weight:700;font-family:var(--mono);margin-top:2px">—</div></div>
+  </aside>
+
+  <main>
+
+    <!-- DAILY LOG (single page, 3 blocks) -->
+    <div class="section active" id="section-log">
+      <div class="sec-title">Daily Log</div>
+      <div class="sec-sub" id="log-date-label">—</div>
+
+      <!-- WEIGHT -->
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);
+        text-transform:uppercase;margin-bottom:8px">⚖ Body Weight</div>
+      <div class="sheet" style="margin-bottom:24px">
+        <table>
+          <thead><tr><th class="ac">WEIGHT (kg)</th><th>UNIT</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><input type="number" step="0.1" placeholder="e.g. 74.5" id="inp-weight"></td>
+              <td>
+                <select id="inp-weight-unit" style="width:100%;background:transparent;border:none;
+                  color:var(--muted);font-family:var(--mono);font-size:13px;padding:10px 14px;
+                  outline:none;cursor:pointer">
+                  <option>kg</option><option>lbs</option>
+                </select>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- WORKOUT -->
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);
+        text-transform:uppercase;margin-bottom:8px">🏋️ Workout</div>
+      <div class="workout-list" id="workout-list"></div>
+      <button class="btn-add-ex" onclick="addExercise()">+ Add exercise</button>
+
+      <div style="height:24px"></div>
+
+      <!-- NUTRITION -->
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);
+        text-transform:uppercase;margin-bottom:8px">🥗 Nutrition</div>
+      <div class="sheet">
+        <table>
+          <thead><tr><th class="ac">CALORIES (kcal)</th><th>REMARKS</th></tr></thead>
+          <tbody id="nut-tbody">
+            <tr>
+              <td style="width:160px"><input type="number" placeholder="0" data-cal id="inp-cal-main"></td>
+              <td><input type="text" placeholder="e.g. chicken + rice, gym day" id="inp-remark-main"></td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="btn-add" onclick="addNutRow()">+ Add row</button>
+      </div>
+
+      <div style="height:24px"></div>
+
+      <!-- STEPS -->
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);
+        text-transform:uppercase;margin-bottom:8px">👟 Steps</div>
+      <div class="sheet" style="margin-bottom:24px">
+        <table>
+          <thead><tr><th class="ac">STEPS TODAY</th><th>STATUS</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><input type="number" placeholder="e.g. 8500" id="inp-steps" min="0"></td>
+              <td id="steps-status" style="padding:10px 14px;font-family:var(--mono);font-size:12px;color:var(--muted)">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="section" id="section-history">
+      <div class="sec-title">History</div>
+      <div class="sec-sub">All saved days · click to expand</div>
+
+      <!-- GRAPH -->
+      <div class="graph-wrap">
+        <div class="graph-title">
+          <span>Progress Chart</span>
+          <select id="graph-type" onchange="drawGraph()">
+            <option value="weight">Weight (kg)</option>
+            <option value="calories">Calories (kcal)</option>
+            <option value="steps">Steps</option>
+          </select>
+        </div>
+        <canvas id="progress-chart" height="200"></canvas>
+        <div id="graph-empty" style="text-align:center;color:var(--muted);font-family:var(--mono);
+          font-size:12px;padding:30px 0;display:none">No data yet — start logging!</div>
+      </div>
+
+      <div id="history-list"></div>
+      <div id="history-empty" style="color:var(--muted);font-family:var(--mono);font-size:13px;
+        padding:20px 0;display:none">No saved entries yet.</div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ──
+const today = new Date().toISOString().split('T')[0];
+let currentDate = today;
+let nutRowIdx = 1;
+
+// ── DATE ──
+const dateInput = document.getElementById('current-date');
+dateInput.value = currentDate;
+document.getElementById('btn-prev').onclick = () => shiftDay(-1);
+document.getElementById('btn-next').onclick = () => shiftDay(1);
+dateInput.addEventListener('change', () => { currentDate = dateInput.value; loadDay(currentDate); });
+
+function shiftDay(d) {
+  const dt = new Date(currentDate + 'T00:00:00');
+  dt.setDate(dt.getDate() + d);
+  currentDate = dt.toISOString().split('T')[0];
+  dateInput.value = currentDate;
+  loadDay(currentDate);
+}
+
+function fmtDate(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-GB',
+    {weekday:'long',day:'2-digit',month:'short',year:'numeric'});
+}
+
+// ── NAV ──
+function sw(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sb-nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  el.classList.add('active');
+  if (id === 'history') { renderHistory(); drawGraph(); }
+}
+
+// ── EXERCISE ROWS ──
+function addExercise(name) {
+  const list = document.getElementById('workout-list');
+  const idx = list.children.length + 1;
+  const row = document.createElement('div');
+  row.className = 'ex-row';
+  row.innerHTML = `
+    <span class="ex-num">${String(idx).padStart(2,'0')}</span>
+    <input type="text" placeholder="Exercise name…" value="${name||''}">
+    <button class="btn-rem" onclick="this.closest('.ex-row').remove();renum();updateSummary()">✕</button>
+  `;
+  list.appendChild(row);
+  row.querySelector('input').addEventListener('input', updateSummary);
+  updateSummary();
+}
+
+function renum() {
+  document.querySelectorAll('.ex-row .ex-num').forEach((el,i) => el.textContent = String(i+1).padStart(2,'0'));
+}
+
+// ── NUTRITION ROWS ──
+function addNutRow(cal, remark) {
+  const tbody = document.getElementById('nut-tbody');
+  const idx = nutRowIdx++;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="width:160px"><input type="number" placeholder="0" data-cal value="${cal||''}"></td>
+    <td>
+      <div style="display:flex;align-items:center">
+        <input type="text" placeholder="remarks…" value="${remark||''}">
+        <button onclick="this.closest('tr').remove();calcCal()" style="background:none;border:none;
+          color:var(--muted);cursor:pointer;padding:0 12px;font-size:14px">✕</button>
+      </div>
+    </td>
+  `;
+  tbody.appendChild(tr);
+  tr.querySelector('[data-cal]').addEventListener('input', calcCal);
+}
+
+// ── CALORIE TOTAL ──
+function calcCal() {
+  let total = 0;
+  document.querySelectorAll('[data-cal]').forEach(i => total += parseFloat(i.value)||0);
+  const sc = document.getElementById('sc');
+  if (total) {
+    sc.textContent = total + ' kcal';
+    sc.style.color = total > 2500 ? 'var(--accent2)' : 'var(--accent3)';
+  } else {
+    sc.textContent = '—';
+    sc.style.color = 'var(--accent3)';
+  }
+}
+
+document.getElementById('inp-cal-main').addEventListener('input', calcCal);
+
+// ── SUMMARY ──
+function updateSummary() {
+  const w = document.getElementById('inp-weight').value;
+  const unit = document.getElementById('inp-weight-unit').value;
+  document.getElementById('sw').textContent = w ? w + ' ' + unit : '—';
+  const ex = document.querySelectorAll('.ex-row').length;
+  document.getElementById('se').textContent = ex || '—';
+
+  // steps
+  const steps = parseInt(document.getElementById('inp-steps')?.value) || 0;
+  const ss = document.getElementById('ss');
+  const statusEl = document.getElementById('steps-status');
+  if (steps) {
+    const ok = steps >= 10000;
+    ss.textContent = steps.toLocaleString();
+    ss.style.color = ok ? 'var(--accent)' : 'var(--accent2)';
+    if (statusEl) {
+      statusEl.textContent = ok ? '✅ Goal reached!' : `⚠ ${(10000 - steps).toLocaleString()} more to hit 10k`;
+      statusEl.style.color = ok ? 'var(--accent)' : 'var(--accent2)';
+    }
+  } else {
+    ss.textContent = '—';
+    ss.style.color = '';
+    if (statusEl) { statusEl.textContent = '—'; statusEl.style.color = 'var(--muted)'; }
+  }
+  calcCal();
+}
+
+document.getElementById('inp-weight').addEventListener('input', updateSummary);
+
+// ── SAVE ──
+function saveDay() {
+  const exercises = [];
+  document.querySelectorAll('.ex-row input').forEach(i => { if(i.value.trim()) exercises.push(i.value.trim()); });
+
+  const nutRows = [];
+  document.querySelectorAll('#nut-tbody tr').forEach(tr => {
+    const cal = tr.querySelector('[data-cal]')?.value || '';
+    const rem = tr.querySelectorAll('input')[1]?.value || tr.querySelector('input:not([data-cal])')?.value || '';
+    nutRows.push({ cal, remark: rem });
+  });
+
+  const data = {
+    date: currentDate,
+    weight: document.getElementById('inp-weight').value,
+    weightUnit: document.getElementById('inp-weight-unit').value,
+    steps: document.getElementById('inp-steps').value,
+    exercises,
+    nutrition: nutRows
+  };
+
+  const all = getAll();
+  all[currentDate] = data;
+  localStorage.setItem('fitlog2', JSON.stringify(all));
+  showToast('Saved ✓');
+  updateSummary();
+}
+
+function getAll() {
+  try { return JSON.parse(localStorage.getItem('fitlog2')) || {}; } catch { return {}; }
+}
+
+// ── LOAD ──
+function loadDay(date) {
+  document.getElementById('log-date-label').textContent = fmtDate(date);
+  document.getElementById('inp-weight').value = '';
+  const stepsInp = document.getElementById('inp-steps');
+  if (stepsInp) stepsInp.value = '';
+  document.getElementById('workout-list').innerHTML = '';
+  // reset nutrition to single row
+  const tbody = document.getElementById('nut-tbody');
+  tbody.innerHTML = `<tr>
+    <td style="width:160px"><input type="number" placeholder="0" data-cal id="inp-cal-main"></td>
+    <td><input type="text" placeholder="e.g. chicken + rice, gym day" id="inp-remark-main"></td>
+  </tr>`;
+  document.getElementById('inp-cal-main').addEventListener('input', calcCal);
+  nutRowIdx = 1;
+
+  const d = getAll()[date];
+  if (d) {
+    document.getElementById('inp-weight').value = d.weight || '';
+    if (d.weightUnit) document.getElementById('inp-weight-unit').value = d.weightUnit;
+    if (d.steps) { const s = document.getElementById('inp-steps'); if(s) s.value = d.steps; }
+    (d.exercises || []).forEach(name => addExercise(name));
+    if (d.nutrition && d.nutrition.length > 0) {
+      document.getElementById('inp-cal-main').value = d.nutrition[0].cal || '';
+      const remark0 = tbody.querySelector('input:not([data-cal])');
+      if (remark0) remark0.value = d.nutrition[0].remark || '';
+      for (let i = 1; i < d.nutrition.length; i++) {
+        addNutRow(d.nutrition[i].cal, d.nutrition[i].remark);
+      }
+    }
+  }
+  updateSummary();
+}
+
+// ── HISTORY ──
+function renderHistory() {
+  const all = getAll();
+  const keys = Object.keys(all).sort((a,b) => b.localeCompare(a));
+  const list = document.getElementById('history-list');
+  const empty = document.getElementById('history-empty');
+  list.innerHTML = '';
+  if (!keys.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  keys.forEach(date => {
+    const d = all[date];
+    const totalCal = (d.nutrition||[]).reduce((s,r) => s+(parseFloat(r.cal)||0), 0);
+    const stepsVal = parseInt(d.steps) || 0;
+    const pills = [];
+    if (d.weight) pills.push(`<span class="pill w">⚖ ${d.weight} ${d.weightUnit||'kg'}</span>`);
+    if (totalCal) pills.push(`<span class="pill c" style="${totalCal>2500?'border-color:var(--accent2);color:var(--accent2)':''}">🔥 ${totalCal} kcal</span>`);
+    if (stepsVal) pills.push(`<span class="pill" style="${stepsVal<10000?'border-color:var(--accent2);color:var(--accent2)':'border-color:var(--accent);color:var(--accent)'}">👟 ${stepsVal.toLocaleString()}</span>`);
+    if (d.exercises?.length) pills.push(`<span class="pill e">🏋️ ${d.exercises.length}</span>`);
+
+    const exList = (d.exercises||[]).map((e,i) => `<span style="color:var(--text)">${i+1}. ${e}</span>`).join('<br>');
+    const nutRemarks = (d.nutrition||[]).filter(r=>r.remark).map(r=>`${r.remark}${r.cal?' ('+r.cal+' kcal)':''}`).join(' · ');
+
+    const entry = document.createElement('div');
+    entry.className = 'h-entry';
+    entry.innerHTML = `
+      <div class="h-head" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="h-date">${fmtDate(date)}</span>
+        <div class="pills">${pills.join('')}</div>
+      </div>
+      <div class="h-body">
+        <div class="h-fields">
+          ${d.weight ? `<div class="hf"><span class="hl">WEIGHT</span><span class="hv">${d.weight} ${d.weightUnit||'kg'}</span></div>` : ''}
+          ${totalCal ? `<div class="hf"><span class="hl">CALORIES</span><span class="hv" style="${totalCal>2500?'color:var(--accent2)':''}">${totalCal} kcal${totalCal>2500?' ⚠':''}</span></div>` : ''}
+          ${stepsVal ? `<div class="hf"><span class="hl">STEPS</span><span class="hv" style="${stepsVal<10000?'color:var(--accent2)':'color:var(--accent)'}">${stepsVal.toLocaleString()}${stepsVal<10000?' ⚠':' ✅'}</span></div>` : ''}
+          ${d.exercises?.length ? `<div class="hf"><span class="hl">EXERCISES</span><span class="hv" style="font-size:13px;line-height:1.6">${exList}</span></div>` : ''}
+        </div>
+        ${nutRemarks ? `<div class="h-remark">💬 ${nutRemarks}</div>` : ''}
+        <button class="btn-edit" onclick="jumpTo('${date}')">Edit this day →</button>
+      </div>
+    `;
+    list.appendChild(entry);
+  });
+}
+
+function jumpTo(date) {
+  currentDate = date;
+  dateInput.value = date;
+  loadDay(date);
+  sw('log', document.querySelector('[data-s="log"]'));
+}
+
+// ── GRAPH ──
+function drawGraph() {
+  const all = getAll();
+  const type = document.getElementById('graph-type').value;
+  const keys = Object.keys(all).sort();
+  const canvas = document.getElementById('progress-chart');
+  const empty = document.getElementById('graph-empty');
+
+  const points = keys.map(date => {
+    const d = all[date];
+    let val = null;
+    if (type === 'weight') val = parseFloat(d.weight) || null;
+    else if (type === 'steps') val = parseInt(d.steps) || null;
+    else val = (d.nutrition||[]).reduce((s,r) => s+(parseFloat(r.cal)||0), 0) || null;
+    return { date, val };
+  }).filter(p => p.val !== null);
+
+  if (points.length < 2) {
+    empty.style.display = 'block';
+    canvas.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  canvas.style.display = 'block';
+
+  const W = canvas.offsetWidth || 700;
+  const H = 200;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const vals = points.map(p => p.val);
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const pad = { top:20, right:20, bottom:36, left:52 };
+  const gW = W - pad.left - pad.right;
+  const gH = H - pad.top - pad.bottom;
+  const spread = maxV - minV || 1;
+
+  const px = (i) => pad.left + (i / (points.length - 1)) * gW;
+  const py = (v) => pad.top + gH - ((v - minV) / spread) * gH;
+
+  // grid lines
+  ctx.strokeStyle = '#2a2a32';
+  ctx.lineWidth = 1;
+  for (let t = 0; t <= 4; t++) {
+    const y = pad.top + (t / 4) * gH;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + gW, y); ctx.stroke();
+    const label = (maxV - (t / 4) * spread).toFixed(type==='weight'?1:0);
+    ctx.fillStyle = '#6b6b7a';
+    ctx.font = '10px Space Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(label, pad.left - 6, y + 4);
+  }
+
+  // area fill
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + gH);
+  grad.addColorStop(0, type === 'weight' ? 'rgba(232,255,71,.22)' : type === 'steps' ? 'rgba(255,79,79,.22)' : 'rgba(71,196,255,.22)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.moveTo(px(0), py(points[0].val));
+  points.forEach((p,i) => { if(i>0) ctx.lineTo(px(i), py(p.val)); });
+  ctx.lineTo(px(points.length-1), pad.top + gH);
+  ctx.lineTo(px(0), pad.top + gH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // line
+  const lineColor = type === 'weight' ? '#e8ff47' : type === 'steps' ? '#ff4f4f' : '#47c4ff';
+  ctx.beginPath();
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  points.forEach((p,i) => i===0 ? ctx.moveTo(px(i),py(p.val)) : ctx.lineTo(px(i),py(p.val)));
+  ctx.stroke();
+
+  // dots + date labels
+  points.forEach((p, i) => {
+    // dot
+    ctx.beginPath();
+    ctx.arc(px(i), py(p.val), 4, 0, Math.PI*2);
+    ctx.fillStyle = lineColor;
+    ctx.fill();
+    ctx.strokeStyle = '#0d0d0f';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // date label (every nth to avoid clutter)
+    const step = Math.ceil(points.length / 8);
+    if (i % step === 0 || i === points.length - 1) {
+      const dt = new Date(p.date + 'T00:00:00');
+      const lbl = dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+      ctx.fillStyle = '#6b6b7a';
+      ctx.font = '10px Space Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(lbl, px(i), H - 8);
+    }
+  });
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── INIT ──
+loadDay(today);
+addExercise();
+document.getElementById('inp-steps').addEventListener('input', updateSummary);
+</script>
+</body>
+</html>
